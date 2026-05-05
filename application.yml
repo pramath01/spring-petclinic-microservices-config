@@ -12,9 +12,6 @@ spring:
     init:
       schema-locations: classpath*:db/hsqldb/schema.sql
       data-locations: classpath*:db/hsqldb/data.sql
-  sleuth:
-    sampler:
-      probability: 1.0
   cloud:
     config:
       # Allow the microservices to override the remote properties with their own System properties or config file
@@ -38,7 +35,14 @@ spring.cloud.refresh.refreshable: false
 
 # Logging
 logging.level.org.springframework: INFO
-
+logging:
+  level:
+    io.opentelemetry: DEBUG
+    io.opentelemetry.exporter.otlp: DEBUG
+    io.opentelemetry.sdk.trace: DEBUG
+    org.springframework.boot.actuate.autoconfigure.tracing: DEBUG
+    org.springframework.boot.actuate.autoconfigure.opentelemetry: DEBUG
+    org.springframework.web.client.RestTemplate: DEBUG
 # Metrics
 management:
   endpoint:
@@ -55,8 +59,11 @@ management:
       prometheus:
         enabled: true
   tracing:
+    enabled: true  
     sampling:
-      probability: 1
+      probability: 1.0
+    propagation:
+      type: w3c 
 
 eureka:
   instance:
@@ -79,6 +86,30 @@ chaos:
       repository: false
       rest-controller: false
       service: false
+      
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://otel-collector:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://otel-collector:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+        step: 60s
+  metrics:
+    tags:
+      application: ${spring.application.name} 
 
 ---
 spring:
